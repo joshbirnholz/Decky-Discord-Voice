@@ -27,20 +27,46 @@ handling, no separate Discord connection.
 
 ## Install
 
+Prerequisites on the Deck:
+
+- [Decky Loader](https://decky.xyz) installed
+- A sudo password set (run `passwd` in a terminal once if you never set one)
+
+Then, in **Desktop Mode**, open a terminal (Konsole) and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/joshbirnholz/Decky-Discord-Voice/main/install.sh | bash
+```
+
+The script sets up everything:
+
+1. A private Node.js + pnpm toolchain in `~/.local/share/decky-discord-voice`
+   (nothing system-wide is touched)
+2. [Vencord](https://vencord.dev), built from source with the
+   **DeckVoiceBridge** user plugin included
+3. [Vesktop](https://github.com/Vencord/Vesktop) (flatpak), pointed at that
+   custom Vencord build with the plugin enabled — Discord on the Deck is
+   easiest via Vesktop, which runs well in Gaming Mode
+4. The **Discord Voice** Decky plugin, built and installed into Decky Loader
+
+**To update later, just re-run the same command** — it pulls the latest
+version of this plugin and Vencord, rebuilds, and redeploys.
+
+After installing, launch Vesktop once and log in to Discord. The bridge plugin
+retries the localhost connection every 5 s, so start order doesn't matter.
+
+<details>
+<summary><b>Manual install / development</b></summary>
+
 ### 1. The Vencord plugin (inside Discord on the Deck)
 
-Discord on the Deck is easiest via [Vesktop](https://github.com/Vencord/Vesktop)
-(flatpak: `dev.vencord.Vesktop`), which ships Vencord built in and runs well on
-the Deck. To add a custom ("user") plugin you need a Vencord build from source:
+To add a custom ("user") plugin you need a Vencord build from source:
 
 1. Clone Vencord, copy `vencord/deckVoiceBridge/` into `src/userplugins/`.
 2. Build and install per the
    [Vencord custom-plugin docs](https://docs.vencord.dev/installing/custom-plugins/)
    (for Vesktop, point it at your custom Vencord build in its settings).
 3. Enable **DeckVoiceBridge** in Vencord's plugin settings.
-
-The plugin retries the localhost connection every 5 s, so start order doesn't
-matter.
 
 ### 2. The Decky plugin (on the Deck)
 
@@ -60,10 +86,14 @@ scp -r dist main.py plugin.json package.json "$DECK:~/homebrew/plugins/discord-v
 ssh $DECK "systemctl --user restart plugin_loader 2>/dev/null || sudo systemctl restart plugin_loader"
 ```
 
-### 3. Running in Gaming Mode
+</details>
 
-Discord (Vesktop) has to be running for the plugin to work. Add it as a
-non-Steam app and launch it once per session; it keeps running in the
+### Running in Gaming Mode
+
+Discord (Vesktop) has to be running for the plugin to work. The install script
+tries to add it to Steam automatically; if it isn't there, add it as a
+non-Steam app (right-click Vesktop in the app launcher → "Add to Steam").
+Launch it once per session; it keeps running in the
 background while you play. The QAM panel shows a waiting message until the
 bridge connects.
 
