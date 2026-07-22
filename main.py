@@ -2,7 +2,11 @@ import asyncio
 import base64
 import hashlib
 import json
+import os
+import pwd
 import struct
+import subprocess
+import time
 
 import decky
 
@@ -10,6 +14,12 @@ WS_HOST = "127.0.0.1"
 WS_PORT = 48642
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 REQUEST_TIMEOUT = 10.0
+
+VESKTOP_APP = "dev.vencord.Vesktop"
+VESKTOP_LAUNCH_COOLDOWN = 20.0
+# Gamescope (Gaming Mode) and Desktop Mode expose different X displays; try
+# both, alternating between launch attempts.
+VESKTOP_DISPLAYS = [":0", ":1"]
 
 
 class Plugin:
@@ -19,10 +29,13 @@ class Plugin:
         self.pending = {}
         self.next_req_id = 1
         self.state = {"connected": False, "call": None}
+        self.last_vesktop_launch = 0.0
+        self.vesktop_launch_count = 0
         self.server = await asyncio.start_server(
             self._handle_client, WS_HOST, WS_PORT
         )
         decky.logger.info(f"Discord Voice bridge listening on ws://{WS_HOST}:{WS_PORT}")
+        await self.ensure_discord_running()
 
     async def _unload(self):
         if self.bridge_writer is not None:
@@ -65,6 +78,82 @@ class Plugin:
 
     async def set_mute_all(self, muted):
         return await self._request("muteAll", {"muted": muted})
+
+    async def ensure_discord_running(self):
+        """Start Vesktop in the background if it isn't already running.
+
+        Called on plugin load and periodically by the frontend while the
+        bridge is disconnected, so Discord comes up without the user ever
+        launching or seeing it.
+        """
+        if self.state.get("connected") or self._vesktop_running():
+            return {"running": True, "launched": False}
+        now = time.monotonic()
+        if now - self.last_vesktop_launch < VESKTOP_LAUNCH_COOLDOWN:
+            return {"running": False, "launched": False}
+        self.last_vesktop_launch = now
+        return {"running": False, "launched": self._launch_vesktop()}
+
+    # ---- Vesktop lifecycle ----
+
+    def _vesktop_running(self):
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", VESKTOP_APP],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return result.returncode == 0
+        except OSError:
+            return False
+
+    def _launch_vesktop(self):
+        user = getattr(decky, "DECKY_USER", None) or "deck"
+        try:
+            info = pwd.getpwnam(user)
+        except KeyError:
+            decky.logger.warning(f"Cannot launch Vesktop: no such user '{user}'")
+            return False
+
+        display = VESKTOP_DISPLAYS[self.vesktop_launch_count % len(VESKTOP_DISPLAYS)]
+        self.vesktop_launch_count += 1
+
+        env = dict(os.environ)
+        env.update(
+            {
+                "HOME": info.pw_dir,
+                "USER": user,
+                "LOGNAME": user,
+                "XDG_RUNTIME_DIR": f"/run/user/{info.pw_uid}",
+                "DBUS_SESSION_BUS_ADDRESS": f"unix:path=/run/user/{info.pw_uid}/bus",
+                "DISPLAY": env.get("DISPLAY") or display,
+            }
+        )
+        env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
+
+        # The backend may run as root (Decky) — drop to the desktop user so
+        # the flatpak sees the right session, audio, and Discord login.
+        demote = None
+        if os.geteuid() == 0:
+            def demote():
+                os.initgroups(user, info.pw_gid)
+                os.setgid(info.pw_gid)
+                os.setuid(info.pw_uid)
+
+        try:
+            subprocess.Popen(
+                ["flatpak", "run", VESKTOP_APP, "--start-minimized"],
+                env=env,
+                preexec_fn=demote,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            decky.logger.info(f"Launched Vesktop in the background (DISPLAY={env['DISPLAY']})")
+            return True
+        except Exception as e:
+            decky.logger.warning(f"Failed to launch Vesktop: {e}")
+            return False
 
     # ---- Bridge request/response plumbing ----
 

@@ -95,6 +95,7 @@ function FaDiscord (props) {
 }
 
 const getState = callable("get_state");
+const ensureDiscordRunning = callable("ensure_discord_running");
 const listGuilds = callable("list_guilds");
 const listDMs = callable("list_dms");
 const listChannels = callable("list_channels");
@@ -240,6 +241,15 @@ function Content() {
         getState().then(setState);
         return () => removeEventListener("discord_state", listener);
     }, []);
+    // While the bridge is down, keep asking the backend to (re)start Vesktop
+    // in the background; the backend rate-limits actual launches.
+    SP_REACT.useEffect(() => {
+        if (state.connected)
+            return;
+        ensureDiscordRunning();
+        const timer = setInterval(() => ensureDiscordRunning(), 15000);
+        return () => clearInterval(timer);
+    }, [state.connected]);
     // When a call starts or ends, snap back to the root view so the UI follows
     // the actual voice state.
     SP_REACT.useEffect(() => {
@@ -250,7 +260,7 @@ function Content() {
         }
     }, [state.call?.channelId]);
     if (!state.connected) {
-        return (SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "10px", opacity: 0.8 }, children: [SP_JSX.jsx(FaDiscord, { size: 22 }), SP_JSX.jsx("span", { children: "Waiting for Discord\u2026 Make sure Discord is running with the DeckVoiceBridge Vencord plugin enabled." })] }) }) }));
+        return (SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "10px", opacity: 0.8 }, children: [SP_JSX.jsx(FaDiscord, { size: 22 }), SP_JSX.jsx("span", { children: "Starting Discord in the background\u2026 If this is your first time, open Vesktop in Desktop Mode once and log in." })] }) }) }));
     }
     if (state.call) {
         if (nav.view === "member") {

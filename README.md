@@ -52,8 +52,10 @@ The script sets up everything:
 **To update later, just re-run the same command** — it pulls the latest
 version of this plugin and Vencord, rebuilds, and redeploys.
 
-After installing, launch Vesktop once and log in to Discord. The bridge plugin
-retries the localhost connection every 5 s, so start order doesn't matter.
+The installer opens Vesktop at the end — log in to Discord once (your login is
+remembered). After that, the Decky plugin starts Vesktop in the background
+automatically whenever it's needed; you never have to launch or interact with
+the Discord window itself.
 
 <details>
 <summary><b>Manual install / development</b></summary>
@@ -90,12 +92,11 @@ ssh $DECK "systemctl --user restart plugin_loader 2>/dev/null || sudo systemctl 
 
 ### Running in Gaming Mode
 
-Discord (Vesktop) has to be running for the plugin to work. The install script
-tries to add it to Steam automatically; if it isn't there, add it as a
-non-Steam app (right-click Vesktop in the app launcher → "Add to Steam").
-Launch it once per session; it keeps running in the
-background while you play. The QAM panel shows a waiting message until the
-bridge connects.
+Nothing to launch: whenever the bridge isn't connected, the Decky plugin
+starts Vesktop itself as a background process (rate-limited, retried until it
+comes up), so Discord runs without a visible window to manage. The QAM panel
+shows a waiting message until the bridge connects. The only interactive step
+is the one-time Discord login during install.
 
 ## Configuration
 

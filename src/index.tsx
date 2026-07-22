@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { FaChevronLeft, FaDiscord, FaHeadset, FaPhoneAlt, FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 
 import {
+  ensureDiscordRunning,
   getState,
   joinChannel,
   leaveCall,
@@ -407,6 +408,15 @@ function Content() {
     return () => removeEventListener("discord_state", listener);
   }, []);
 
+  // While the bridge is down, keep asking the backend to (re)start Vesktop
+  // in the background; the backend rate-limits actual launches.
+  useEffect(() => {
+    if (state.connected) return;
+    ensureDiscordRunning();
+    const timer = setInterval(() => ensureDiscordRunning(), 15000);
+    return () => clearInterval(timer);
+  }, [state.connected]);
+
   // When a call starts or ends, snap back to the root view so the UI follows
   // the actual voice state.
   useEffect(() => {
@@ -424,8 +434,8 @@ function Content() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", opacity: 0.8 }}>
             <FaDiscord size={22} />
             <span>
-              Waiting for Discord… Make sure Discord is running with the DeckVoiceBridge
-              Vencord plugin enabled.
+              Starting Discord in the background… If this is your first time, open
+              Vesktop in Desktop Mode once and log in.
             </span>
           </div>
         </PanelSectionRow>

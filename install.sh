@@ -183,15 +183,13 @@ sudo cp -r "$SRC_DIR/dist" "$SRC_DIR/main.py" "$SRC_DIR/plugin.json" "$SRC_DIR/p
 log "Restarting Decky Loader"
 sudo systemctl restart plugin_loader
 
-# ------------------------------------------------------------- add to Steam --
+# -------------------------------------------------------------- first login --
 
-added_to_steam=false
-desktop_file="$(ls "$HOME/.local/share/flatpak/exports/share/applications/$VESKTOP_APP.desktop" \
-                   "/var/lib/flatpak/exports/share/applications/$VESKTOP_APP.desktop" 2>/dev/null | head -n1 || true)"
-if command -v steamos-add-to-steam >/dev/null 2>&1 && [ -n "$desktop_file" ]; then
-  if steamos-add-to-steam "$desktop_file" >/dev/null 2>&1; then
-    added_to_steam=true
-  fi
+# From now on the Decky plugin starts Vesktop in the background by itself, but
+# the very first Discord login has to be done interactively — open it now.
+if ! flatpak ps 2>/dev/null | grep -q "$VESKTOP_APP"; then
+  log "Launching Vesktop — log in to Discord if you haven't already"
+  (nohup flatpak run "$VESKTOP_APP" >/dev/null 2>&1 &)
 fi
 
 # --------------------------------------------------------------------- done --
@@ -205,23 +203,10 @@ cat <<EOF
     - Decky plugin:            $PLUGIN_DEST
 
   Next steps:
-    1. Launch Vesktop once and log in to Discord.
-       (Check Vesktop Settings -> Vencord section: DeckVoiceBridge should be enabled.)
-EOF
-if [ "$added_to_steam" = true ]; then
-  cat <<'EOF'
-    2. Vesktop was added to Steam as a non-Steam app. In Gaming Mode, launch it
-       once per session; it keeps running in the background while you play.
-EOF
-else
-  cat <<'EOF'
-    2. Add Vesktop to Steam (right-click it in the app launcher -> "Add to Steam").
-       In Gaming Mode, launch it once per session; it keeps running in the
-       background while you play.
-EOF
-fi
-cat <<'EOF'
-    3. Open the Quick Access Menu -> plug icon -> "Discord Voice".
+    1. Log in to Discord in the Vesktop window that just opened (first install
+       only — your login is remembered after that).
+    2. That's it. In Gaming Mode the plugin starts Discord in the background
+       automatically; open the Quick Access Menu -> plug icon -> "Discord Voice".
 
   To update later, just re-run this script.
 EOF
