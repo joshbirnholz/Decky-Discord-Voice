@@ -1,0 +1,11 @@
+{
+  "name": "Discord Voice",
+  "author": "compc",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["discord", "voice", "chat"],
+    "description": "Manage Discord voice chat from the Quick Access Menu: see your current call, join server channels or DM calls, mute members and adjust their volume.",
+    "image": ""
+  }
+}
