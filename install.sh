@@ -22,6 +22,10 @@
 
 set -euo pipefail
 
+# Piped through `curl | bash`, stdin isn't a TTY; CI=true tells pnpm to skip
+# interactive prompts (e.g. confirming node_modules removal on reinstall).
+export CI=true
+
 REPO_URL="${REPO_URL:-https://github.com/joshbirnholz/Decky-Discord-Voice.git}"
 VENCORD_URL="${VENCORD_URL:-https://github.com/Vendicated/Vencord.git}"
 
@@ -67,7 +71,6 @@ mkdir -p "$BASE_DIR"
 
 # ------------------------------------------------------------ node + pnpm ---
 
-echo "debug: NODE_DIR=$NODE_DIR"
 if ! "$NODE_DIR/bin/node" --version >/dev/null 2>&1; then
   log "Downloading Node.js v$NODE_VERSION (private copy, no system changes)"
   rm -rf "$NODE_DIR"
@@ -75,13 +78,7 @@ if ! "$NODE_DIR/bin/node" --version >/dev/null 2>&1; then
   tar -xJf "$BASE_DIR/node.tar.xz" -C "$BASE_DIR"
   rm -f "$BASE_DIR/node.tar.xz"
 fi
-echo "debug: contents of \$BASE_DIR:"; ls -la "$BASE_DIR"
-echo "debug: contents of \$NODE_DIR/bin:"; ls -la "$NODE_DIR/bin" 2>&1 || echo "  (missing)"
 export PATH="$NODE_DIR/bin:$PATH"
-echo "debug: PATH=$PATH"
-echo "debug: which node -> $(command -v node || echo 'not found')"
-echo "debug: which npm  -> $(command -v npm || echo 'not found')"
-"$NODE_DIR/bin/node" --version
 
 if ! command -v pnpm >/dev/null 2>&1; then
   log "Installing pnpm"
