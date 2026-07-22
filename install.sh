@@ -67,15 +67,25 @@ mkdir -p "$BASE_DIR"
 
 # ------------------------------------------------------------ node + pnpm ---
 
+echo "debug: NODE_DIR=$NODE_DIR"
 if ! "$NODE_DIR/bin/node" --version >/dev/null 2>&1; then
   log "Downloading Node.js v$NODE_VERSION (private copy, no system changes)"
-  curl -fL "$NODE_URL" | tar -xJ -C "$BASE_DIR"
+  rm -rf "$NODE_DIR"
+  curl -fL "$NODE_URL" -o "$BASE_DIR/node.tar.xz"
+  tar -xJf "$BASE_DIR/node.tar.xz" -C "$BASE_DIR"
+  rm -f "$BASE_DIR/node.tar.xz"
 fi
+echo "debug: contents of \$BASE_DIR:"; ls -la "$BASE_DIR"
+echo "debug: contents of \$NODE_DIR/bin:"; ls -la "$NODE_DIR/bin" 2>&1 || echo "  (missing)"
 export PATH="$NODE_DIR/bin:$PATH"
+echo "debug: PATH=$PATH"
+echo "debug: which node -> $(command -v node || echo 'not found')"
+echo "debug: which npm  -> $(command -v npm || echo 'not found')"
+"$NODE_DIR/bin/node" --version
 
 if ! command -v pnpm >/dev/null 2>&1; then
   log "Installing pnpm"
-  npm install -g pnpm >/dev/null
+  "$NODE_DIR/bin/npm" install -g pnpm >/dev/null
 fi
 
 # --------------------------------------------------------------- git repos --
