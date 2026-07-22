@@ -30,7 +30,7 @@ SRC_DIR="$BASE_DIR/Decky-Discord-Voice"
 VENCORD_DIR="$BASE_DIR/Vencord"
 
 NODE_VERSION="${NODE_VERSION:-22.14.0}"
-NODE_DIR="$BASE_DIR/node-v$NODE_VERSION"
+NODE_DIR="$BASE_DIR/node-v$NODE_VERSION-linux-x64"
 NODE_URL="https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz"
 
 PLUGIN_ID="discord-voice"
