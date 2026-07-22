@@ -159,8 +159,10 @@ def merge(path, mutate):
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
-# Vesktop's own settings: where to load Vencord from.
-merge(os.path.join(conf_dir, "settings.json"),
+# Vesktop's *state* (not settings) file is where it looks up a custom
+# Vencord build directory — see Vesktop's src/main/vencordFilesDir.ts:
+#   VENCORD_FILES_DIR = State.store.vencordDir || <bundled default>
+merge(os.path.join(conf_dir, "state.json"),
       lambda s: s.__setitem__("vencordDir", vencord_dist))
 
 # Vencord's settings: make sure the bridge plugin is enabled.
